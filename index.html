@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Гра в слова</title>
+  <style>
+    body{font-family: Arial, Helvetica, sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f7fb;margin:0}
+    .game{background:white;padding:24px;border-radius:8px;box-shadow:0 6px 24px rgba(22,27,48,.08);width:520px;max-width:94%}
+    h1{margin:0 0 8px;font-size:20px}
+    .word{font-size:32px;letter-spacing:8px;margin:18px 0}
+    .meta{display:flex;gap:12px;align-items:center;margin-bottom:12px;color:#333}
+    .used{color:#666}
+    input[type="text"]{padding:8px;border:1px solid #ddd;border-radius:4px;width:120px}
+    button{padding:8px 12px;border-radius:6px;border:0;background:#2b7cff;color:white;cursor:pointer}
+    button.secondary{background:#6c757d}
+    .message{margin-top:12px;font-weight:600}
+    .footer{margin-top:14px;font-size:13px;color:#666}
+  </style>
+</head>
+<body>
+  <div class="game" role="main">
+    <h1>Гра в слова</h1>
+    <div class="meta">
+      <div>Спроби: <span id="attempts">6</span></div>
+      <div class="used">Використані літери: <span id="used">—</span></div>
+    </div>
+
+    <div class="word" id="masked">_ _ _ _ _</div>
+
+    <div>
+      <input id="letter" type="text" maxlength="1" placeholder="літера" aria-label="літера" />
+      <button id="guessLetter">Вгадати літеру</button>
+      <input id="wordGuess" type="text" placeholder="вгадати слово" style="margin-left:8px;width:180px" />
+      <button id="guessWord" class="secondary">Вгадати слово</button>
+    </div>
+
+    <div class="message" id="message">Натисніть «Вгадати літеру» щоб почати.</div>
+
+    <div style="margin-top:14px">
+      <button id="newGame">Нова гра</button>
+    </div>
+
+    <div class="footer">Порада: можна вводити українські літери або вгадувати слово цілком.</div>
+  </div>
+
+  <script>
+    const words = ["програмування","котлін","компютер","веб","розробка","інтернет","алгоритм","дані"];
+    let secret = '';
+    let masked = [];
+    let attempts = 6;
+    let used = new Set();
+
+    const elAttempts = document.getElementById('attempts');
+    const elUsed = document.getElementById('used');
+    const elMasked = document.getElementById('masked');
+    const elMessage = document.getElementById('message');
+    const inputLetter = document.getElementById('letter');
+    const inputWord = document.getElementById('wordGuess');
+
+    function newGame(){
+      secret = words[Math.floor(Math.random()*words.length)];
+      masked = Array.from(secret).map(ch => (ch === ' ' ? ' ' : '_'));
+      attempts = 6;
+      used.clear();
+      updateDisplay();
+      elMessage.textContent = 'Гра почалась — вгадайте слово.';
+      inputLetter.value = '';
+      inputWord.value = '';
+      inputLetter.focus();
+      document.getElementById('guessLetter').disabled = false;
+      document.getElementById('guessWord').disabled = false;
+    }
+
+    function updateDisplay(){
+      elMasked.textContent = masked.join(' ');
+      elAttempts.textContent = attempts;
+      elUsed.textContent = Array.from(used).join(', ') || '—';
+    }
+
+    function finish(win){
+      if(win){
+        elMessage.textContent = 'Вітаю! Ви вгадали слово: ' + secret;
+      } else {
+        elMessage.textContent = 'Поразка — слово було: ' + secret;
+      }
+      document.getElementById('guessLetter').disabled = true;
+      document.getElementById('guessWord').disabled = true;
+    }
+
+    function guessLetter(){
+      const val = inputLetter.value.trim().toLowerCase();
+      if(!val){ elMessage.textContent = 'Введіть літеру.'; return; }
+      if(used.has(val)){ elMessage.textContent = 'Цю літеру вже використовували.'; inputLetter.value=''; return; }
+      used.add(val);
+      let found = false;
+      for(let i=0;i<secret.length;i++){
+        if(secret[i].toLowerCase() === val){ masked[i]=secret[i]; found = true; }
+      }
+      if(!found){ attempts--; elMessage.textContent = 'Ні — такої літери немає.'; }
+      else{ elMessage.textContent = 'Є! Продовжуйте.'; }
+      inputLetter.value='';
+      updateDisplay();
+      checkState();
+    }
+
+    function guessWord(){
+      const val = inputWord.value.trim().toLowerCase();
+      if(!val){ elMessage.textContent = 'Введіть слово для вгадування.'; return; }
+      if(val === secret.toLowerCase()){
+        masked = Array.from(secret);
+        updateDisplay();
+        finish(true);
+      } else {
+        attempts -= 2; if(attempts<0) attempts=0;
+        elMessage.textContent = 'Невірно — втрачаєте 2 спроби.';
+        updateDisplay();
+        checkState();
+      }
+      inputWord.value='';
+    }
+
+    function checkState(){
+      if(!masked.includes('_')){ finish(true); }
+      else if(attempts <= 0){ finish(false); }
+    }
+
+    document.getElementById('guessLetter').addEventListener('click', guessLetter);
+    document.getElementById('guessWord').addEventListener('click', guessWord);
+    document.getElementById('newGame').addEventListener('click', newGame);
+    inputLetter.addEventListener('keyup', (e)=>{ if(e.key === 'Enter') guessLetter(); });
+    inputWord.addEventListener('keyup', (e)=>{ if(e.key === 'Enter') guessWord(); });
+
+    // Initialize
+    newGame();
+  </script>
+</body>
+</html>
